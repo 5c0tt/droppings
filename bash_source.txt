@@ -1,0 +1,139 @@
+#!/bin/bash
+# 08/10/14  - 07:36:12 AM
+# Making some changes to get this file ready to post to github
+# I stopped using growl now that they charged, and this script needs updating to use the built in
+# Notification Center features of Mavericks and above.  Sorry, no love for those if you who are not on
+# Mavericks.  I will put a check in for your OS version, as this script will work on any version of Mac OS X,
+# the test will be simple, if ( running mavericks ) display notification center, otherwise, work as usual,
+# but the user will have to know what to look for when the script is done running.
+
+log_dir=/tmp/dropbox_log.txt
+echo "started run" >> $log_dir
+
+# Check to see if they have defined ther user_id / url_id
+if [ ! -f ~/.dropbox_id ]; then
+        osascript -e 'tell application "Finder"' -e 'activate' -e \
+        'display dialog "Your DropBox Droplet environment is not configured, please see the README." buttons {"OK"} default button 1' -e \
+        'end tell'
+        echo 'file not found'
+        exit
+fi
+
+
+# My shared folder
+sub_dir='drops'
+user_id=`cat ~/.dropbox_id`
+
+# Get the path to my current dropbox
+dropbox_dir=`tail -n1 ~/.dropbox/host.db`
+public_dir=`echo $dropbox_dir | openssl enc -d -base64`
+
+# Make the sub_dir
+date_stamp=`date "+%m.%d.%y"`
+secret_dir=$public_dir/Public/$sub_dir/$date_stamp
+mkdir -p $secret_dir
+
+# Store the secret_dir location in the temp log
+echo "secret_dir: $secret_dir" >> $log_dir
+
+# Capture the Internal Field Seperator, we will set it back to this later
+# for now, we need to remember it, so we can change it, and then change it back.
+ORIGINAL_IFS=$IFS
+
+# Set the Dropbox Base url for public downloads
+# This could change at the whim of DropBox, but so far, in several years, it has not budged
+db_base="http://dl.dropbox.com/u/$user_id/Share/"
+echo "db_base: $db_base" >> $log_dir
+
+# Set the IFS to newline, this will be put back to the correct $IFS when we are done
+# using the newline as the $IFS
+IFS=$'\n'
+
+# ITERATE!
+for f in "$@"
+do
+	echo $f >> $log_dir
+
+	# Generate a simple random string with datestamp
+	str1=$( echo "$f" | md5 )
+	randstring="${str1:2:2}"
+	randstring="${randstring}-`date '+%H%M%S'`"
+	echo "Random string: $randstring" >> $log_dir
+
+	# If this iteration is a directory
+	if [ -d "$f" ]; then
+		echo "Working on directory: $f" >> $log_dir
+
+		# Extract just the directory name, so remove the path
+		dir_name=`basename "$f"`
+
+		# change into the submitted dir, then back up one dir.
+		# The zip command has odd behavior if you don't zip from
+		# the working area where the files are
+		cd "$f"; cd ../
+
+		# Recusrisve zip the directory, shove the zip into DropBox $secret_dir
+		zip -r "$secret_dir/$dir_name-$randstring" "$dir_name"
+		echo "Zipped: $secret_dir/$dir_name-$randstring.zip" >> $log_dir
+
+		# The final rusulting filenmae, with .zip extention
+		new_file_name="$dir_name-$randstring.zip"
+	else
+		# Determine what the file extention is
+		file_ext=.${f##*.}
+		echo "file_ext: $file_ext" >> $log_dir
+
+		# Get just the length of the extention
+		ext_len=${#file_ext}
+		echo "ext_len: $ext_len" >> $log_dir
+
+		# Get the entire filename length
+		file_name_len=${#f}
+		echo "file_name_len: $file_name_len" >> $log_dir
+
+		# Get just the filename
+		filename=${f:0:($file_name_len-$ext_len)}
+		echo "Just the file name: ${f:0:($file_name_len-$ext_len)}"
+
+		# Create a new filename, much harder to guess
+		new_file_name="$filename-$randstring$file_ext"
+
+		#Automator sends in a full path strip off all but the last
+		new_file_name=`basename $new_file_name`
+		echo "New filename: $new_file_name" >> $log_dir
+
+		# Copy the file into a new location, with the new name
+		echo "cp $f $secret_dir/$new_file_name" >> $log_dir
+
+		cp "$f" "$secret_dir/$new_file_name"
+
+		echo "File copied" >> $log_dir
+	fi
+	# Done comparing files to folders
+
+	# Just encode the spaces and pipes for now, it can be fancier later with an array or library
+	encoded=`echo $new_file_name | sed 's/ /%20/g'`
+	encoded=`echo $encoded | sed 's/|/%7C/g'`
+	echo "encoded: $encoded" >> $log_dir
+
+	echo "" >> $log_dir
+
+	# | is the delimiter
+	urls="${urls}http://dl.dropbox.com/u/$user_id/$sub_dir/$date_stamp/${encoded}|"
+
+	echo $urls >> $log_dir
+
+
+done
+
+# Return the IFS back to it's original before thsi scriot was run.
+IFS=$ORIGINAL_IFS
+
+# echo $urls onto the clipboard, they are now pasteable, and newline seperated.
+echo $urls | sed 's/|/\
+/g' | pbcopy
+
+# Notify the user via Notification Center
+#osascript -e 'display notification "The url(s) are on your clipboard from Droppings.app" with title "Droppings has finished sharing your files"'
+# tring this one out for a while
+osascript -e "display notification \"The url(s) are on your clipboard from Droppings.app\" with title \"Droppings has finished sharing your files\" subtitle (the clipboard as string)" 
