@@ -1,5 +1,5 @@
-Droppings  
-© 2009 Scott Haneda scott@newgeo.com
+08.08.2015 — 08:15:50 PM -0700
+Scott Haneda [@scotthaneda](https://twitter.com/scotthaneda)
 
 Droppings by Scott Haneda is licensed under a [Creative Commons 
 Attribution-Share Alike 3.0](http://creativecommons.org/licenses/by-sa/3.0/us/) United States License. 
@@ -23,13 +23,13 @@ Droppings allows you to drop a file, folder, or group of file and folders onto i
 **Installation:**  
 Locate one of your public URL's and take note of the ID in the url.  For example, a url such as this:
 
-     http://dl.getdropbox.com/u/123456/Misc/example.png
+	http://dl.getdropbox.com/u/123456/Misc/example.png
 
 In that url, the `123456` is your user id.  Open your terminal on OS X, located in ``/Applications/Utilities/Terminal.app``
 
 Paste the below line into your terminal, changing the XXXXXX for our user id.
 
-`echo 'XXXXXX' >> ~/.dropbox_id`
+	echo 'XXXXXX' >> ~/.dropbox_id
 
 Press return.  That is it, now just drag and drop any files and folders onto the Droppings icon.  You can even put it in your Dock for easier access.
 
@@ -41,7 +41,7 @@ If you open the Droppings.app in Automator, you can see it is nothing more than 
 The md5 hash on the filename used to create a pseudo random string, is particularly less than ideal.  Maybe someone who knows more about bash can make a better random string.
 
 **Notes and change log**  
-****07:39:21 PM [04/13/2009]*
+*07:39:21 PM [04/13/2009]*  
 Fixed bug in which the users user_id was not passed into the url, and my personal user id was.  Since no one reported it, I guess no one is using this software :)
 
 ***07:40:25 PM [04/13/2009]***  
